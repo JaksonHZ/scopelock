@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Optional
 from .cache import CacheManager
 from .detector import find_duplicates
+from .importer import calculate_import_statement
 from .parser import FunctionSignature, parse_python_file
 
 
@@ -132,11 +133,19 @@ def main() -> None:
         rel_new = match.new_func.file_path.relative_to(root_path)
         rel_exist = match.existing_func.file_path.relative_to(root_path)
 
+        import_stmt = calculate_import_statement(
+            source_file=match.new_func.file_path,
+            target_file=match.existing_func.file_path,
+            function_name=match.existing_func.name,
+            root_dir=root_path,
+        )
+
         pct = int(match.similarity_score * 100)
         print(f"[{i}] {pct}% similaridade — {match.reason}")
         print(f"    ❌ Função:   '{match.new_func.name}' em {rel_new}:{match.new_func.line_number}")
         print(f"    💡 Já existe: '{match.existing_func.name}' em {rel_exist}:{match.existing_func.line_number}")
-        print(f"    👉 Sugestão: Reaproveite a função de '{rel_exist}' em vez de reimplementar.\n")
+        print(f"    👉 Sugestão: Reaproveite importando:")
+        print(f"       {import_stmt}\n")
 
     sys.exit(1)
 

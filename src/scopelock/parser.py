@@ -19,6 +19,27 @@ class FunctionSignature:
     normalized_body: str
 
 
+def normalize_statement_type(stmt: ast.stmt) -> str:
+    """
+    Normaliza instruções funcionalmente equivalentes:
+    - ListComp e For/Append convergem para 'IterationPattern'
+    - IfExp (ternário) e If/Else convergem para 'BranchPattern'
+    """
+    if isinstance(stmt, (ast.For, ast.AsyncFor)):
+        return "IterationPattern"
+    if isinstance(stmt, ast.If):
+        return "BranchPattern"
+    if isinstance(stmt, ast.Return):
+        # Verifica se o retorno é uma ListComp ou DictComp
+        val = getattr(stmt, "value", None)
+        if isinstance(val, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
+            return "IterationPattern"
+        if isinstance(val, ast.IfExp):
+            return "BranchPattern"
+        return "Return"
+    return type(stmt).__name__
+
+
 class ASTParser(ast.NodeVisitor):
     """Varre a AST de um arquivo Python coletando funções e métodos."""
 
@@ -46,7 +67,7 @@ class ASTParser(ast.NodeVisitor):
             s for s in node.body
             if not (isinstance(s, ast.Expr) and isinstance(getattr(s, "value", None), ast.Constant) and isinstance(s.value.value, str))
         ]
-        normalized_repr = "-".join(type(stmt).__name__ for stmt in body_stmts)
+        normalized_repr = "-".join(normalize_statement_type(stmt) for stmt in body_stmts)
 
         self.functions.append(
             FunctionSignature(
