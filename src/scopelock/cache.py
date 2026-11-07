@@ -1,11 +1,11 @@
-"""Gerenciador de cache incremental para varredura ultra-rápida de AST."""
+"""Incremental cache manager for fast AST indexing and retrieval."""
 
 import hashlib
 import json
 from dataclasses import asdict
 from pathlib import Path
 from typing import Dict, List, Optional
-from .parser import FunctionSignature
+from .parsers.base import FunctionSignature
 
 
 CACHE_DIR_NAME = ".scopelock"
@@ -13,7 +13,7 @@ CACHE_FILE_NAME = "index.json"
 
 
 def get_file_hash(path: Path) -> str:
-    """Calcula hash sha256 simples e mtime do arquivo para detecção rápida de alteração."""
+    """Calculates file modification timestamp and size hash for quick invalidation."""
     stat = path.stat()
     hasher = hashlib.sha256()
     hasher.update(f"{stat.st_mtime}-{stat.st_size}".encode("utf-8"))
@@ -21,7 +21,7 @@ def get_file_hash(path: Path) -> str:
 
 
 class CacheManager:
-    """Armazena assinaturas de funções parseadas e invalida apenas arquivos modificados."""
+    """Stores parsed function signatures and invalidates only modified files."""
 
     def __init__(self, root_dir: Path):
         self.root_dir = root_dir
@@ -38,16 +38,15 @@ class CacheManager:
             return {}
 
     def save_cache(self) -> None:
-        """Persiste o índice no disco."""
+        """Persists the cache index to disk."""
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        # Salva o arquivo de cache ignorando se falhar
         try:
             self.cache_file.write_text(json.dumps(self.data, indent=2), encoding="utf-8")
         except Exception:
             pass
 
     def get_functions_for_file(self, file_path: Path) -> Optional[List[FunctionSignature]]:
-        """Retorna funções do cache se o arquivo não tiver sido modificado."""
+        """Returns cached function signatures if the file was not modified."""
         rel_path = str(file_path.relative_to(self.root_dir))
         entry = self.data.get(rel_path)
         if not entry:
@@ -55,7 +54,7 @@ class CacheManager:
 
         current_hash = get_file_hash(file_path)
         if entry.get("hash") != current_hash:
-            return None  # Arquivo modificado, precisa de re-parse
+            return None  # File changed, requires re-parse
 
         cached_funcs = []
         for f in entry.get("functions", []):
@@ -74,7 +73,7 @@ class CacheManager:
         return cached_funcs
 
     def update_file_cache(self, file_path: Path, functions: List[FunctionSignature]) -> None:
-        """Atualiza a entrada de cache de um arquivo."""
+        """Updates the cache entry for a file."""
         rel_path = str(file_path.relative_to(self.root_dir))
         serialized_funcs = []
         for f in functions:

@@ -1,4 +1,4 @@
-"""Definições e contratos base para parsers agnósticos de linguagem."""
+"""Base definitions and contracts for language-agnostic parsers."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from typing import Optional, Set
 
 @dataclass(frozen=True)
 class FunctionSignature:
-    """Representação unificada de uma função, agnóstica de linguagem."""
+    """Unified, language-agnostic representation of a function or method."""
 
     name: str
     file_path: Path
@@ -17,19 +17,19 @@ class FunctionSignature:
     docstring: Optional[str]
     body_node_count: int
     normalized_body: str
-    language: str  # ex: "python", "typescript", "javascript", "go"
+    language: str  # e.g., "python", "typescript", "javascript", "java", "ruby"
 
 
 class BaseParser(ABC):
-    """Contrato base para qualquer parser de linguagem no ScopeLock."""
+    """Abstract contract for all language parsers in ScopeLock."""
 
     @property
     @abstractmethod
     def supported_extensions(self) -> Set[str]:
-        """Extensões suportadas por este parser (ex: {'.py'} ou {'.ts', '.tsx', '.js'})."""
+        """Supported file extensions (e.g. {'.py'} or {'.ts', '.tsx'})."""
         pass
 
     @abstractmethod
     def parse_file(self, file_path: Path) -> list[FunctionSignature]:
-        """Lê e extrai funções e métodos do arquivo."""
+        """Reads and extracts function signatures from the given file."""
         pass

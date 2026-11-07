@@ -1,3 +1,3 @@
-"""ScopeLock - Guardrail anti-overengineering para agentes de código."""
+"""ScopeLock - Anti-overengineering and deduplication guardrail for AI agents."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

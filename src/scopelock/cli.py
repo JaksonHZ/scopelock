@@ -1,4 +1,4 @@
-"""Interface de Linha de Comando (CLI) para o ScopeLock."""
+"""Command Line Interface (CLI) for ScopeLock."""
 
 import argparse
 import sys
@@ -11,7 +11,7 @@ from .parsers import default_registry
 from .parsers.base import FunctionSignature
 
 
-# Diretórios padrão que devem ser ignorados na varredura
+# Directories ignored during repository scans by default
 DEFAULT_IGNORED_DIRS = {
     ".git",
     ".scopelock",
@@ -22,12 +22,13 @@ DEFAULT_IGNORED_DIRS = {
     ".pytest_cache",
     "build",
     "dist",
+    "target",
     "openpost",
 }
 
 
 def scan_directory(target_dir: Path, cache_manager: Optional[CacheManager] = None) -> List[FunctionSignature]:
-    """Varre recursivamente uma pasta usando suporte multi-linguagem e cache incremental."""
+    """Recursively scans directory across supported languages using incremental caching."""
     functions: List[FunctionSignature] = []
     supported_extensions = default_registry.supported_extensions
 
@@ -59,47 +60,46 @@ def scan_directory(target_dir: Path, cache_manager: Optional[CacheManager] = Non
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="ScopeLock — Guardrail anti-overengineering e anti-duplicação para Agentes de IA."
+        description="ScopeLock — Anti-overengineering and code deduplication guardrail for AI coding agents."
     )
     parser.add_argument(
         "target",
         nargs="?",
         default=".",
-        help="Diretório raiz do projeto a ser analisado (padrão: diretório atual)",
+        help="Root directory of the project to analyze (default: current directory)",
     )
     parser.add_argument(
         "--threshold",
         "-t",
         type=float,
         default=0.65,
-        help="Limiar de similaridade para considerar duplicata (0.0 a 1.0, padrão 0.65)",
+        help="Similarity sensitivity threshold (0.0 to 1.0, default: 0.65)",
     )
     parser.add_argument(
         "--file",
         "-f",
         type=str,
         default=None,
-        help="Arquivo específico que acabou de ser alterado/criado pelo agente",
+        help="Target file to inspect (e.g. file modified by an AI agent)",
     )
 
     args = parser.parse_args()
     root_path = Path(args.target).resolve()
 
     if not root_path.exists():
-        print(f"Erro: O caminho '{root_path}' não existe.")
+        print(f"Error: Path '{root_path}' does not exist.")
         sys.exit(1)
 
     cache_manager = CacheManager(root_path)
     all_functions = scan_directory(root_path, cache_manager=cache_manager)
 
     if not all_functions:
-        print(f"Nenhum arquivo Python válido encontrado em {root_path}.")
+        print(f"No supported source files found in {root_path}.")
         sys.exit(0)
 
     if args.file:
         target_file = Path(args.file).resolve()
         new_functions = default_registry.parse_file(target_file)
-        # Compara apenas as funções do arquivo contra o restante da base
         other_functions = [f for f in all_functions if f.file_path != target_file]
     else:
         new_functions = all_functions
@@ -107,7 +107,7 @@ def main() -> None:
 
     duplicates = find_duplicates(new_functions, other_functions, threshold=args.threshold)
 
-    # Remove duplicatas espelhadas (A duplica B e B duplica A)
+    # Filter mirrored duplicates (A -> B and B -> A)
     unique_matches = []
     seen_pairs = set()
 
@@ -124,16 +124,16 @@ def main() -> None:
             seen_pairs.add(pair_key)
             unique_matches.append(d)
 
-    print("\n🔍 ScopeLock: Varredura de AST e Duplicação Funcional")
-    print(f"📁 Diretório: {root_path}")
-    print(f"📊 Funções analisadas no inventário: {len(all_functions)}")
+    print("\n🔍 ScopeLock: AST & Functional Deduplication Scan")
+    print(f"📁 Target directory: {root_path}")
+    print(f"📊 Functions analyzed in inventory: {len(all_functions)}")
 
     if not unique_matches:
-        print("\n✅ Nenhuma duplicação funcional ou overengineering detectado!")
-        print("O código respeita o princípio de reaproveitamento.\n")
+        print("\n✅ Clean! No functional duplication or overengineering detected.")
+        print("Codebase adheres to reuse principles.\n")
         sys.exit(0)
 
-    print(f"\n⚠️  Atenção: {len(unique_matches)} potencial(is) duplicação(ões) encontrada(s):\n")
+    print(f"\n⚠️  Warning: {len(unique_matches)} potential duplicate(s) detected:\n")
 
     for i, match in enumerate(unique_matches, 1):
         rel_new = match.new_func.file_path.relative_to(root_path)
@@ -147,10 +147,10 @@ def main() -> None:
         )
 
         pct = int(match.similarity_score * 100)
-        print(f"[{i}] {pct}% similaridade — {match.reason}")
-        print(f"    ❌ Função:   '{match.new_func.name}' em {rel_new}:{match.new_func.line_number}")
-        print(f"    💡 Já existe: '{match.existing_func.name}' em {rel_exist}:{match.existing_func.line_number}")
-        print(f"    👉 Sugestão: Reaproveite importando:")
+        print(f"[{i}] {pct}% similarity — {match.reason}")
+        print(f"    ❌ Function:   '{match.new_func.name}' in {rel_new}:{match.new_func.line_number}")
+        print(f"    💡 Already in: '{match.existing_func.name}' in {rel_exist}:{match.existing_func.line_number}")
+        print(f"    👉 Recommendation: Reuse by importing:")
         print(f"       {import_stmt}\n")
 
     sys.exit(1)

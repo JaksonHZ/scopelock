@@ -1,4 +1,4 @@
-"""Parser para TypeScript e JavaScript (.ts, .tsx, .js, .jsx)."""
+"""Parser for TypeScript and JavaScript files (.ts, .tsx, .js, .jsx, .mjs)."""
 
 import re
 from pathlib import Path
@@ -8,10 +8,10 @@ from .base import BaseParser, FunctionSignature
 
 class TypeScriptParser(BaseParser):
     """
-    Parser robusto para ecossistema JS/TS sem dependências externas:
-    - Funções nomeadas (function name(a, b))
-    - Arrow functions e function expressions (const name = (a, b) => ...)
-    - Métodos de classes (name(a, b) { ... })
+    Parser for JS/TS ecosystems without external dependencies:
+    - Named functions (function name(a, b))
+    - Arrow functions & expressions (const name = (a, b) => ...)
+    - Class methods (name(a, b) { ... })
     """
 
     @property
@@ -27,17 +27,13 @@ class TypeScriptParser(BaseParser):
         functions: List[FunctionSignature] = []
         lines = content.splitlines()
 
-        # Regex para capturar declarações de funções e arrow functions
         func_patterns = [
-            # 1. function name(params)
             re.compile(
                 r"^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z0-9_$]+)\s*(?:<[^>]*>)?\s*\(([^)]*)\)"
             ),
-            # 2. const/let/var name = (params) => ou function(...)
             re.compile(
                 r"^(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_$]+)\s*=\s*(?:async\s*)?(?:\(([^)]*)\)|([A-Za-z0-9_$]+))\s*(?::\s*[^=]+)?\s*=>"
             ),
-            # 3. Métodos: name(params): returnType {
             re.compile(
                 r"^\s*(?:(?:public|private|protected|static|async)\s+)*([A-Za-z0-9_$]+)\s*(?:<[^>]*>)?\s*\(([^)]*)\)\s*(?::\s*[^{]+)?\s*\{"
             ),
@@ -54,11 +50,9 @@ class TypeScriptParser(BaseParser):
                     func_name = match.group(1)
                     raw_params = match.group(2) if match.lastindex >= 2 and match.group(2) else ""
 
-                    # Ignora palavras reservadas ou construtores de teste
                     if func_name in ("if", "for", "while", "switch", "catch", "describe", "it", "test"):
                         continue
 
-                    # Extrai os nomes dos parâmetros limpando tipos do TS
                     params = []
                     if raw_params:
                         for p in raw_params.split(","):
@@ -66,14 +60,12 @@ class TypeScriptParser(BaseParser):
                             if clean_p and clean_p != "...args":
                                 params.append(clean_p)
 
-                    # Tenta capturar JSDoc nas linhas anteriores
                     docstring = None
                     if line_idx > 0:
                         prev_line = lines[line_idx - 1].strip()
                         if "*/" in prev_line or prev_line.startswith("*"):
                             docstring = prev_line.replace("*/", "").replace("*", "").strip()
 
-                    # Estimativa de fluxo sintático
                     body_tokens = []
                     if "return" in clean_line:
                         body_tokens.append("Return")

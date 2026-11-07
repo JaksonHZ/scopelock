@@ -1,4 +1,4 @@
-"""Parser para código Ruby (.rb)."""
+"""Parser for Ruby source code (.rb)."""
 
 import re
 from pathlib import Path
@@ -8,9 +8,9 @@ from .base import BaseParser, FunctionSignature
 
 class RubyParser(BaseParser):
     """
-    Parser para arquivos Ruby (.rb):
-    - Captura declarações de métodos: def nome_metodo(params) ou def self.nome_metodo
-    - Extrai comentários prévios no padrão Ruby (# ...)
+    Parser for Ruby files (.rb):
+    - Captures instance and class method declarations: def method_name or def self.method_name
+    - Extracts preceding Ruby comments (# ...)
     """
 
     @property
@@ -26,10 +26,6 @@ class RubyParser(BaseParser):
         functions: List[FunctionSignature] = []
         lines = content.splitlines()
 
-        # Regex para métodos em Ruby
-        # Ex: def slugify(text, delimiter = '-')
-        # Ex: def self.format_currency(amount)
-        # Ex: def calculate_tax amount, rate
         method_pattern = re.compile(
             r"^\s*def\s+(?:self\.)?([A-Za-z0-9_!?]+)(?:\s*\(([^)]*)\)|\s+([A-Za-z0-9_,\s=:]+))?"
         )
@@ -44,7 +40,6 @@ class RubyParser(BaseParser):
                 method_name = match.group(1).strip()
                 raw_params = match.group(2) or match.group(3) or ""
 
-                # Extrai nomes dos parâmetros ignorando valores padrão (ex: text, delimiter = '-')
                 params = []
                 if raw_params:
                     for p in raw_params.split(","):
@@ -52,14 +47,12 @@ class RubyParser(BaseParser):
                         if param_name and not param_name.startswith("&") and not param_name.startswith("*"):
                             params.append(param_name)
 
-                # Captura comentário Ruby anterior
                 docstring = None
                 if line_idx > 0:
                     prev_line = lines[line_idx - 1].strip()
                     if prev_line.startswith("#"):
                         docstring = prev_line.lstrip("#").strip()
 
-                # Estimativa de fluxo sintático
                 body_tokens = []
                 if ".each" in clean_line or ".map" in clean_line or "for " in clean_line:
                     body_tokens.append("IterationPattern")

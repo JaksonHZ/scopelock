@@ -1,4 +1,4 @@
-"""Parser nativo de Python baseado em AST."""
+"""Native Python parser based on standard AST."""
 
 import ast
 from pathlib import Path
@@ -7,6 +7,7 @@ from .base import BaseParser, FunctionSignature
 
 
 def normalize_statement_type(stmt: ast.stmt) -> str:
+    """Normalizes functionally equivalent statements."""
     if isinstance(stmt, (ast.For, ast.AsyncFor)):
         return "IterationPattern"
     if isinstance(stmt, ast.If):
@@ -60,7 +61,7 @@ class _ASTVisitor(ast.NodeVisitor):
 
 
 class PythonParser(BaseParser):
-    """Parser para arquivos Python (.py)."""
+    """Parser for Python source files (.py)."""
 
     @property
     def supported_extensions(self) -> Set[str]:

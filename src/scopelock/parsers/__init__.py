@@ -1,4 +1,4 @@
-"""Roteador e registro unificado de parsers por extensão de arquivo."""
+"""Unified parser registry routing files by extension."""
 
 from pathlib import Path
 from typing import Dict, List, Set
@@ -10,18 +10,17 @@ from .typescript_parser import TypeScriptParser
 
 
 class ParserRegistry:
-    """Registra parsers por extensão e direciona os arquivos automaticamente."""
+    """Registers language parsers by extension and directs files automatically."""
 
     def __init__(self):
         self._parsers: Dict[str, BaseParser] = {}
-        # Registra parsers padrão
         self.register(PythonParser())
         self.register(TypeScriptParser())
         self.register(JavaParser())
         self.register(RubyParser())
 
     def register(self, parser: BaseParser) -> None:
-        """Registra um parser para suas respectivas extensões."""
+        """Registers a parser for its supported file extensions."""
         for ext in parser.supported_extensions:
             self._parsers[ext.lower()] = parser
 
@@ -37,5 +36,5 @@ class ParserRegistry:
         return parser.parse_file(file_path)
 
 
-# Instância global padrão
+# Default global registry instance
 default_registry = ParserRegistry()

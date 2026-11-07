@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Script de auto-checagem rápida para agentes
+# Quick automated inspection script for AI agents
 set -euo pipefail
 
 TARGET_FILE="${1:-}"

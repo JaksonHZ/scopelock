@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 # ScopeLock pre-commit hook
-# Impede que agentes ou commits humanos introduzam duplicação funcional
+# Prevents AI agents or human commits from introducing functional duplication
 
 set -e
 
-# Obtém arquivos Python em staged
-STAGED_PY_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+# Gather staged files across supported extensions
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(py|ts|tsx|js|jsx|mjs|java|rb)$' || true)
 
-if [ -z "$STAGED_PY_FILES" ]; then
+if [ -z "$STAGED_FILES" ]; then
     exit 0
 fi
 
-echo "🔒 ScopeLock: Verificando duplicação e overengineering nos arquivos alterados..."
+echo "🔒 ScopeLock: Checking for functional duplication across staged files..."
 
-for file in $STAGED_PY_FILES; do
+for file in $STAGED_FILES; do
     if [ -f "$file" ]; then
         python3 -m scopelock.cli . --file "$file"
     fi
 done
 
-echo "✅ ScopeLock: Código limpo e sem duplicação de utilitários!"
+echo "✅ ScopeLock: Codebase is clean and free of duplicate utilities!"
 exit 0

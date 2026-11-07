@@ -1,43 +1,44 @@
 ---
 name: scopelock
-description: Previne overengineering, duplicação funcional e inchaço de código inspecionando a AST antes de criar novos utilitários.
+description: Prevents overengineering, functional duplication, and code bloat by inspecting the syntax tree before writing new utilities.
 ---
 
-# ScopeLock — Guardrail Anti-Overengineering para Agentes
+# ScopeLock — Anti-Overengineering Guardrail for AI Agents
 
-Esta skill capacita o agente a verificar proativamente se uma função ou utilitário que ele planeja criar já existe na base de código, evitando duplicações desnecessárias.
+This skill empowers coding agents to proactively verify whether a function or utility they plan to create already exists in the codebase, preventing unnecessary duplication.
 
-## Quando Usar Esta Skill
+## When to Use This Skill
 
-Ative e utilize o ScopeLock sempre que:
-1. Você estiver prestes a criar uma nova função utilitária (como formatação de strings, cálculos comuns, validações, manipuladores de data ou wrappers de API).
-2. For salvar ou propor alterações em arquivos novos ou existentes.
-3. Quiser validar se o repositório está limpo antes de concluir uma tarefa de codificação.
+Activate and use ScopeLock whenever:
+1. You are about to author a new helper or utility function (e.g. string formatting, mathematical calculations, validators, date helpers, API wrappers).
+2. You are preparing to save or propose changes across new or modified files.
+3. You want to verify that the repository stays clean before finalizing a coding task.
 
-## Como Executar
+## How to Execute
 
-### 1. Inspecionar um arquivo específico que você acabou de criar/alterar
-Antes de dar a tarefa como concluída, rode:
+### 1. Inspect a specific file you just created or modified
+Before completing your task, run:
 
 ```bash
-python3 -m scopelock.cli . --file caminho/do/arquivo_alterado.py
+python3 -m scopelock.cli . --file path/to/changed_file.py
 ```
 
-### 2. Inspecionar o projeto inteiro
+### 2. Inspect the entire project
 ```bash
 python3 -m scopelock.cli .
 ```
 
-### 3. O que fazer ao encontrar duplicatas?
-Se o ScopeLock alertar:
+### 3. What to do when duplicates are found?
+If ScopeLock reports:
 ```
-⚠️  Atenção: 1 potencial duplicação encontrada:
-    ❌ Função:   'format_date' em novo_modulo.py
-    💡 Já existe: 'format_timestamp' em utils/dates.py
-    👉 Sugestão: Reaproveite a função de 'utils/dates.py' em vez de reimplementar.
+⚠️  Warning: 1 potential duplicate detected:
+    ❌ Function:   'format_date' in new_module.py
+    💡 Already in: 'format_timestamp' in utils/dates.py
+    👉 Recommendation: Reuse by importing:
+       from utils.dates import format_timestamp
 ```
 
-**Ação obrigatória:**
-- Remova a função duplicada que você criou.
-- Importe a função existente: `from utils.dates import format_timestamp`.
-- Adapte a chamada no seu código.
+**Required Action:**
+- Delete the redundant function you just created.
+- Import the existing function: `from utils.dates import format_timestamp`.
+- Update your code to call the imported helper.

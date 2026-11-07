@@ -1,4 +1,4 @@
-"""Calculador de statements de importação canônicos e relativos."""
+"""Canonical import statement calculator across supported languages."""
 
 from pathlib import Path
 
@@ -10,7 +10,7 @@ def calculate_import_statement(
     root_dir: Path,
 ) -> str:
     """
-    Calcula o statement de importação adequado para a linguagem:
+    Calculates the recommended import statement according to the language convention:
     - Python: from module.path import func
     - TypeScript/JavaScript: import { func } from './relative/path';
     - Java: import com.package.ClassName;
@@ -29,7 +29,6 @@ def calculate_import_statement(
         return f"import {{ {function_name} }} from '{rel_str}';"
 
     if ext == ".java":
-        # Tenta extrair a declaração de package do arquivo Java
         try:
             for line in target_file.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
@@ -39,7 +38,7 @@ def calculate_import_statement(
                     return f"import {pkg}.{class_name};"
         except Exception:
             pass
-        return f"import {target_file.stem}; // ou método estático {function_name}"
+        return f"import {target_file.stem}; // or static import {function_name}"
 
     if ext == ".rb":
         try:
@@ -49,7 +48,7 @@ def calculate_import_statement(
             rel_str = target_file.stem
         return f"require_relative '{rel_str}'"
 
-    # Padrão Python
+    # Default Python style
     try:
         rel_target = target_file.resolve().relative_to(root_dir.resolve())
     except ValueError:

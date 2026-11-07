@@ -2,48 +2,55 @@
 
 > **Zero-dependency, multi-language anti-overengineering and code deduplication guardrail for AI coding agents.**
 
-Agentes autônomos de código (Claude Code, Cursor, Aider, Copilot Workspace) têm um vício em comum: **eles adoram reinventar a roda**. Quando precisam de um utilitário (como `slugify`, `formatCurrency` ou normalização de datas), a maioria dos modelos simplesmente gera uma função nova do zero, inchando o repositório com código duplicado em vez de reaproveitar o que já existe em `helpers/` ou `utils/`.
+Autonomous coding agents (Claude Code, Cursor, Aider, Copilot Workspace) share a common habit: **they love reinventing the wheel**. Whenever they need a utility helper (such as string slugification, currency formatting, or date normalization), most models generate a brand-new function from scratch instead of reusing existing helpers in `utils/` or `helpers/`, bloating the repository with redundant code.
 
-O **ScopeLock** analisa a estrutura do projeto e atua como uma barreira antes de cada commit. Suporta múltiplos ecossistemas (**Python, TypeScript, JavaScript, Java e Ruby**) sem precisar de configurações invasivas nem dependências externas pesadas. Se o agente tentar reimplementar uma função funcionalmente similar, o ScopeLock barra a alteração e calcula o statement exato de import que deve ser usado.
-
----
-
-## 🎯 Por que o ScopeLock existe?
-
-1. **Combate a "Amnésia" dos Agentes:** Modelos de linguagem nem sempre têm a árvore completa de utilitários no contexto imediato.
-2. **Zero Dependências Pesadas:** Feito com o módulo nativo `ast` do Python. Rápido, leve e roda em milissegundos.
-3. **AST + Heurística Semântica:** Não compara apenas nomes de funções; avalia a lista de parâmetros, fluxo de instruções sintáticas e docstrings.
+**ScopeLock** analyzes your project's syntax tree and serves as a pre-commit guardrail. It supports multiple ecosystems (**Python, TypeScript, JavaScript, Java, and Ruby**) without external configuration files or heavy dependencies. When an agent attempts to reimplement an existing utility, ScopeLock blocks the change and generates the exact canonical import statement required to reuse it.
 
 ---
 
-## 🚀 Como Usar
+## 🎯 Key Features
 
-### 1. Varredura no Repositório
+1. **Zero External Dependencies:** Built with pure Python standard libraries. Lightweight, instant execution (< 50ms).
+2. **Multi-Language Support:** Analyzes Python (`.py`), TypeScript (`.ts`, `.tsx`), JavaScript (`.js`, `.jsx`), Java (`.java`), and Ruby (`.rb`).
+3. **Language-Specific Canonical Imports:** Automatically formats imports in the target language's idiomatic style:
+   - Python: `from module.utils import func`
+   - TypeScript/JavaScript: `import { func } from './utils';`
+   - Java: `import com.example.utils.StringUtils;`
+   - Ruby: `require_relative 'format_utils'`
+4. **AST Normalization:** Canonicalizes functional equivalents (e.g. comprehensions vs for-loops with appends) to catch semantically identical implementations.
+5. **Incremental Cache:** Persists a lightweight signature index in `.scopelock/index.json` to scan massive codebases incrementally without re-parsing unchanged files.
+6. **Agent Skill Ready:** Includes an out-of-the-box `SKILL.md` manifest so coding agents can self-inspect code before proposing changes.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Scan the Entire Repository
 
 ```bash
-# Analisa todo o repositório atual
+# Scan the current directory
 python3 -m scopelock.cli .
 
-# Analisa com limiar de sensibilidade customizado (0.0 a 1.0)
-python3 -m scopelock.cli . --threshold 0.70
+# Adjust the similarity sensitivity threshold (0.0 to 1.0, default: 0.65)
+python3 -m scopelock.cli . --threshold 0.75
 ```
 
-### 2. Analisar Apenas Arquivos Alterados pelo Agente
+### 2. Inspect Changed Files Only (Targeted Scan)
 
 ```bash
-python3 -m scopelock.cli . --file src/novo_modulo.py
+python3 -m scopelock.cli . --file src/new_module.py
 ```
 
-### 3. Como Skill para Agentes de IA
+### 3. As an AI Agent Skill
 
-O ScopeLock inclui um manifesto de skill (`skill/SKILL.md`) compatível com agentes de IA (Antigravity, Claude Code, Cursor, OpenCode):
+ScopeLock includes a standard skill definition (`skill/SKILL.md`) compatible with agent harnesses (Antigravity, Claude Code, Cursor, OpenCode):
 
-- O agente pode auto-inspecionar seu próprio código antes de commitar ou propor alterações.
-- O script `skill/scripts/check.sh` pode ser chamado em pipelines de CI/CD ou diretamente no workspace do agente.
+- Agents can execute `skill/scripts/check.sh` to self-inspect their work before finalizing tasks.
+- If redundant functions are detected, the agent is instructed to remove the duplicate and insert the recommended import.
 
-### 4. Como Git Hook (Pre-commit)
+### 4. As a Git Pre-commit Hook
 
-Copie o hook de exemplo para o seu repositório:
+Copy the sample hook to your `.git/hooks` directory:
 
 ```bash
 cp examples/pre-commit-hook.sh .git/hooks/pre-commit
@@ -52,27 +59,34 @@ chmod +x .git/hooks/pre-commit
 
 ---
 
-## 🧪 Demonstração
+## 🧪 Real-World Example
 
-Suponha que seu projeto já tenha `existing_utils.py` com `slugify()`. O agente de IA então cria `agent_duplicated_code.py` com `slugify_text()`:
+Suppose your repository already has `existing_utils.py` containing `slugify()`. An AI agent then creates `agent_duplicated_code.py` with `slugify_text()`:
 
 ```bash
 $ python3 -m scopelock.cli examples/
 
-🔍 ScopeLock: Varredura de AST e Duplicação Funcional
-📁 Diretório: /home/jakson/pessoal/scopelock/examples
-📊 Funções analisadas no inventário: 4
+🔍 ScopeLock: AST & Functional Deduplication Scan
+📁 Target directory: /home/jakson/pessoal/scopelock/examples
+📊 Functions analyzed in inventory: 14
 
-⚠️  Atenção: 2 potencial(is) duplicação(ões) encontrada(s):
+⚠️  Warning: 4 potential duplicate(s) detected:
 
-[1] 65% similaridade — Mesma lista de parâmetros + Mesmo fluxo AST + Docstrings com 100% semelhança
-    ❌ Função:   'slugify' em existing_utils.py:6
-    💡 Já existe: 'slugify_text' em agent_duplicated_code.py:6
-    👉 Sugestão: Reaproveite a função existente em vez de reimplementar.
+[1] 99% similarity — Very close names (97% match) + Identical parameters + Matching AST flow
+    ❌ Function:   'format_currency_br' in existing_utils.py:13
+    💡 Already in: 'format_currency_brl' in agent_duplicated_code.py:13
+    👉 Recommendation: Reuse by importing:
+       from agent_duplicated_code import format_currency_brl
+
+[2] 76% similarity — Close names (90% match) + Identical parameters + Matching AST flow
+    ❌ Function:   'formatCurrencyBRL' in existing_utils.ts:4
+    💡 Already in: 'formatCurrency' in agent_duplicated_code.ts:4
+    👉 Recommendation: Reuse by importing:
+       import { formatCurrency } from './agent_duplicated_code';
 ```
 
 ---
 
-## 📄 Licença
+## 📄 License
 
-MIT — sinta-se livre para usar, adaptar e integrar nos seus fluxos de agentes.
+MIT License — feel free to use, modify, and distribute.
