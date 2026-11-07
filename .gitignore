@@ -30,6 +30,9 @@ ENV/
 .coverage
 htmlcov/
 
+# ScopeLock local index cache
+.scopelock/
+
 # IDE / OS
 .vscode/
 .idea/

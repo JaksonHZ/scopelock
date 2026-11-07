@@ -34,7 +34,14 @@ python3 -m scopelock.cli . --threshold 0.70
 python3 -m scopelock.cli . --file src/novo_modulo.py
 ```
 
-### 3. Como Git Hook (Pre-commit)
+### 3. Como Skill para Agentes de IA
+
+O ScopeLock inclui um manifesto de skill (`skill/SKILL.md`) compatível com agentes de IA (Antigravity, Claude Code, Cursor, OpenCode):
+
+- O agente pode auto-inspecionar seu próprio código antes de commitar ou propor alterações.
+- O script `skill/scripts/check.sh` pode ser chamado em pipelines de CI/CD ou diretamente no workspace do agente.
+
+### 4. Como Git Hook (Pre-commit)
 
 Copie o hook de exemplo para o seu repositório:
 

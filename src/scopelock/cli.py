@@ -3,7 +3,8 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Optional
+from .cache import CacheManager
 from .detector import find_duplicates
 from .parser import FunctionSignature, parse_python_file
 
@@ -11,6 +12,7 @@ from .parser import FunctionSignature, parse_python_file
 # Diretórios padrão que devem ser ignorados na varredura
 DEFAULT_IGNORED_DIRS = {
     ".git",
+    ".scopelock",
     ".venv",
     "venv",
     "node_modules",
@@ -22,15 +24,28 @@ DEFAULT_IGNORED_DIRS = {
 }
 
 
-def scan_directory(target_dir: Path) -> List[FunctionSignature]:
-    """Varre recursivamente uma pasta procurando arquivos .py e extrai funções."""
+def scan_directory(target_dir: Path, cache_manager: Optional[CacheManager] = None) -> List[FunctionSignature]:
+    """Varre recursivamente uma pasta usando cache incremental para arquivos não modificados."""
     functions: List[FunctionSignature] = []
 
     for path in target_dir.rglob("*.py"):
-        # Ignora pastas de ambiente e builds
         if any(ignored in path.parts for ignored in DEFAULT_IGNORED_DIRS):
             continue
-        functions.extend(parse_python_file(path))
+
+        if cache_manager:
+            cached = cache_manager.get_functions_for_file(path)
+            if cached is not None:
+                functions.extend(cached)
+                continue
+
+        parsed = parse_python_file(path)
+        functions.extend(parsed)
+
+        if cache_manager:
+            cache_manager.update_file_cache(path, parsed)
+
+    if cache_manager:
+        cache_manager.save_cache()
 
     return functions
 
@@ -67,7 +82,8 @@ def main() -> None:
         print(f"Erro: O caminho '{root_path}' não existe.")
         sys.exit(1)
 
-    all_functions = scan_directory(root_path)
+    cache_manager = CacheManager(root_path)
+    all_functions = scan_directory(root_path, cache_manager=cache_manager)
 
     if not all_functions:
         print(f"Nenhum arquivo Python válido encontrado em {root_path}.")

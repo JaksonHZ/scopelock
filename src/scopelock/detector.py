@@ -84,15 +84,43 @@ def find_duplicates(
     existing_functions: List[FunctionSignature],
     threshold: float = 0.65,
 ) -> List[DuplicateMatch]:
-    """Identifica novas funções que duplicam ou reimplementam utilitários já existentes."""
+    """
+    Identifica novas funções que duplicam ou reimplementam utilitários já existentes.
+    Usa filtragem rápida por tokens/prefixo para evitar comparações O(N²) pesadas.
+    """
     matches = []
+
+    # Cria índice invertido leve de tokens para poda de candidatos
+    token_index = {}
+    for exist_f in existing_functions:
+        tokens = set(re.findall(r"\w+", _clean_name(exist_f.name)))
+        if exist_f.params:
+            tokens.update(exist_f.params)
+        for token in tokens:
+            if len(token) > 2:  # ignora tokens muito curtos
+                token_index.setdefault(token, []).append(exist_f)
 
     for new_f in new_functions:
         best_match: Optional[DuplicateMatch] = None
         max_score = 0.0
 
-        for exist_f in existing_functions:
-            # Não compara com a própria função
+        # Seleciona apenas funções candidatas que compartilham ao menos 1 token relevante
+        new_tokens = set(re.findall(r"\w+", _clean_name(new_f.name)))
+        if new_f.params:
+            new_tokens.update(new_f.params)
+
+        candidates = set()
+        for token in new_tokens:
+            if token in token_index:
+                candidates.update(token_index[token])
+
+        # Se houver poucas funções no total (< 100), compara com todas como garantia
+        if len(existing_functions) < 100:
+            target_pool = existing_functions
+        else:
+            target_pool = candidates
+
+        for exist_f in target_pool:
             if new_f.file_path == exist_f.file_path and new_f.line_number == exist_f.line_number:
                 continue
 

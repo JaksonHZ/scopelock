@@ -6,14 +6,14 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 
-@dataclass
+@dataclass(frozen=True)
 class FunctionSignature:
     """Representação estruturada de uma função encontrada no código."""
 
     name: str
     file_path: Path
     line_number: int
-    params: List[str]
+    params: tuple[str, ...]
     docstring: Optional[str]
     body_node_count: int
     normalized_body: str
@@ -35,7 +35,7 @@ class ASTParser(ast.NodeVisitor):
         self.generic_visit(node)
 
     def _record_function(self, node) -> None:
-        params = [arg.arg for arg in node.args.args if arg.arg not in ("self", "cls")]
+        params = tuple(arg.arg for arg in node.args.args if arg.arg not in ("self", "cls"))
         docstring = ast.get_docstring(node)
 
         # Contagem de nós AST dentro do corpo da função (mede complexidade/tamanho estrutural)
