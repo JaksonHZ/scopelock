@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scopelock"
+version = "0.1.0"
+description = "Anti-overengineering and code deduplication guardrail for AI coding agents"
+readme = "README.md"
+authors = [{ name = "Jakson Huang", email = "jaksonhuangz@gmail.com" }]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+scopelock = "scopelock.cli:main"
