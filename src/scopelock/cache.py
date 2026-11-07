@@ -68,6 +68,7 @@ class CacheManager:
                     docstring=f.get("docstring"),
                     body_node_count=f.get("body_node_count", 0),
                     normalized_body=f.get("normalized_body", ""),
+                    language=f.get("language", "python"),
                 )
             )
         return cached_funcs

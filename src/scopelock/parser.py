@@ -1,95 +1,12 @@
-"""Extrator de assinaturas e nós de funções usando AST padrão do Python."""
+"""Ponto de entrada de compatibilidade para assinaturas e parsing."""
 
-import ast
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, List, Optional
-
-
-@dataclass(frozen=True)
-class FunctionSignature:
-    """Representação estruturada de uma função encontrada no código."""
-
-    name: str
-    file_path: Path
-    line_number: int
-    params: tuple[str, ...]
-    docstring: Optional[str]
-    body_node_count: int
-    normalized_body: str
+from .parsers.base import BaseParser, FunctionSignature
+from .parsers.python_parser import PythonParser
+from .parsers.typescript_parser import TypeScriptParser
+from .parsers import default_registry
 
 
-def normalize_statement_type(stmt: ast.stmt) -> str:
-    """
-    Normaliza instruções funcionalmente equivalentes:
-    - ListComp e For/Append convergem para 'IterationPattern'
-    - IfExp (ternário) e If/Else convergem para 'BranchPattern'
-    """
-    if isinstance(stmt, (ast.For, ast.AsyncFor)):
-        return "IterationPattern"
-    if isinstance(stmt, ast.If):
-        return "BranchPattern"
-    if isinstance(stmt, ast.Return):
-        # Verifica se o retorno é uma ListComp ou DictComp
-        val = getattr(stmt, "value", None)
-        if isinstance(val, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
-            return "IterationPattern"
-        if isinstance(val, ast.IfExp):
-            return "BranchPattern"
-        return "Return"
-    return type(stmt).__name__
+def parse_python_file(file_path):
+    """Wrapper de compatibilidade para arquivos Python."""
+    return default_registry.parse_file(file_path)
 
-
-class ASTParser(ast.NodeVisitor):
-    """Varre a AST de um arquivo Python coletando funções e métodos."""
-
-    def __init__(self, file_path: Path):
-        self.file_path = file_path
-        self.functions: List[FunctionSignature] = []
-
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        self._record_function(node)
-        self.generic_visit(node)
-
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        self._record_function(node)
-        self.generic_visit(node)
-
-    def _record_function(self, node) -> None:
-        params = tuple(arg.arg for arg in node.args.args if arg.arg not in ("self", "cls"))
-        docstring = ast.get_docstring(node)
-
-        # Contagem de nós AST dentro do corpo da função (mede complexidade/tamanho estrutural)
-        node_count = sum(1 for _ in ast.walk(node))
-
-        # Cria uma representação normalizada da árvore AST do corpo (ignorando docstring)
-        body_stmts = [
-            s for s in node.body
-            if not (isinstance(s, ast.Expr) and isinstance(getattr(s, "value", None), ast.Constant) and isinstance(s.value.value, str))
-        ]
-        normalized_repr = "-".join(normalize_statement_type(stmt) for stmt in body_stmts)
-
-        self.functions.append(
-            FunctionSignature(
-                name=node.name,
-                file_path=self.file_path,
-                line_number=node.lineno,
-                params=params,
-                docstring=docstring,
-                body_node_count=node_count,
-                normalized_body=normalized_repr,
-            )
-        )
-
-
-def parse_python_file(file_path: Path) -> List[FunctionSignature]:
-    """Lê e analisa um arquivo Python retornando as assinaturas encontradas."""
-    try:
-        content = file_path.read_text(encoding="utf-8")
-        tree = ast.parse(content, filename=str(file_path))
-        parser = ASTParser(file_path)
-        parser.visit(tree)
-        return parser.functions
-    except (SyntaxError, UnicodeDecodeError):
-        # Ignora arquivos com erros de sintaxe ou codificação não-UTF8
-        return []

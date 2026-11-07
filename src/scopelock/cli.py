@@ -7,7 +7,8 @@ from typing import List, Optional
 from .cache import CacheManager
 from .detector import find_duplicates
 from .importer import calculate_import_statement
-from .parser import FunctionSignature, parse_python_file
+from .parsers import default_registry
+from .parsers.base import FunctionSignature
 
 
 # Diretórios padrão que devem ser ignorados na varredura
@@ -26,10 +27,15 @@ DEFAULT_IGNORED_DIRS = {
 
 
 def scan_directory(target_dir: Path, cache_manager: Optional[CacheManager] = None) -> List[FunctionSignature]:
-    """Varre recursivamente uma pasta usando cache incremental para arquivos não modificados."""
+    """Varre recursivamente uma pasta usando suporte multi-linguagem e cache incremental."""
     functions: List[FunctionSignature] = []
+    supported_extensions = default_registry.supported_extensions
 
-    for path in target_dir.rglob("*.py"):
+    for path in target_dir.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.suffix.lower() not in supported_extensions:
+            continue
         if any(ignored in path.parts for ignored in DEFAULT_IGNORED_DIRS):
             continue
 
@@ -39,7 +45,7 @@ def scan_directory(target_dir: Path, cache_manager: Optional[CacheManager] = Non
                 functions.extend(cached)
                 continue
 
-        parsed = parse_python_file(path)
+        parsed = default_registry.parse_file(path)
         functions.extend(parsed)
 
         if cache_manager:
@@ -92,7 +98,7 @@ def main() -> None:
 
     if args.file:
         target_file = Path(args.file).resolve()
-        new_functions = parse_python_file(target_file)
+        new_functions = default_registry.parse_file(target_file)
         # Compara apenas as funções do arquivo contra o restante da base
         other_functions = [f for f in all_functions if f.file_path != target_file]
     else:

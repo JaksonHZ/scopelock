@@ -10,21 +10,31 @@ def calculate_import_statement(
     root_dir: Path,
 ) -> str:
     """
-    Calcula a declaração de import recomendada:
-    1. Tenta import canônico absoluto baseado na raiz do projeto (ex: from utils.strings import slugify)
-    2. Se os arquivos estiverem na mesma pasta: from .strings import slugify
+    Calcula o statement de importação adequado para a linguagem:
+    - Python: from module.path import func
+    - TypeScript/JavaScript: import { func } from './relative/path';
     """
+    ext = target_file.suffix.lower()
+
+    if ext in (".ts", ".tsx", ".js", ".jsx", ".mjs"):
+        # Import relativo para JS/TS
+        try:
+            rel = target_file.resolve().relative_to(source_file.parent.resolve())
+            rel_str = str(rel.with_suffix(""))
+            if not rel_str.startswith("."):
+                rel_str = f"./{rel_str}"
+        except ValueError:
+            rel_str = f"./{target_file.stem}"
+        return f"import {{ {function_name} }} from '{rel_str}';"
+
+    # Padrão Python
     try:
         rel_target = target_file.resolve().relative_to(root_dir.resolve())
     except ValueError:
-        # Fora da raiz, usa nome do arquivo
         module_name = target_file.stem
         return f"from {module_name} import {function_name}"
 
-    # Remove extensão .py
     parts = list(rel_target.with_suffix("").parts)
-
-    # Se for __init__.py, o módulo é o nome do diretório pai
     if parts and parts[-1] == "__init__":
         parts.pop()
 

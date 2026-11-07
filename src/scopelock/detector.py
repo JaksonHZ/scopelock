@@ -124,6 +124,10 @@ def find_duplicates(
             if new_f.file_path == exist_f.file_path and new_f.line_number == exist_f.line_number:
                 continue
 
+            # Não compara linguagens diferentes (ex: não sugerir importar TS em Python)
+            if new_f.language != exist_f.language:
+                continue
+
             score, reason = calculate_similarity(new_f, exist_f)
             if score >= threshold and score > max_score:
                 max_score = score

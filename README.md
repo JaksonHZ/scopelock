@@ -1,10 +1,10 @@
 # ScopeLock 🔒
 
-> **Zero-dependency, AST-based anti-overengineering and code deduplication guardrail for AI coding agents.**
+> **Zero-dependency, multi-language anti-overengineering and code deduplication guardrail for AI coding agents.**
 
-Agentes autônomos de código (Claude Code, Cursor, Aider, Copilot Workspace) têm um vício em comum: **eles adoram reinventar a roda**. Quando precisam de um utilitário (como `slugify`, `format_currency` ou normalização de datas), a maioria dos modelos simplesmente gera uma função nova do zero, inchando o repositório com código duplicado em vez de reaproveitar o que já existe em `helpers/` ou `utils/`.
+Agentes autônomos de código (Claude Code, Cursor, Aider, Copilot Workspace) têm um vício em comum: **eles adoram reinventar a roda**. Quando precisam de um utilitário (como `slugify`, `formatCurrency` ou normalização de datas), a maioria dos modelos simplesmente gera uma função nova do zero, inchando o repositório com código duplicado em vez de reaproveitar o que já existe em `helpers/` ou `utils/`.
 
-O **ScopeLock** analisa a árvore sintática abstrata (AST) do projeto e atua como uma barreira antes de cada commit. Se o agente tentar reimplementar uma função funcionalmente similar ou com mesmo fluxo de instruções, o ScopeLock barra a alteração e indica qual utilitário existente deve ser importado.
+O **ScopeLock** analisa a estrutura do projeto e atua como uma barreira antes de cada commit. Suporta múltiplos ecossistemas (**Python, TypeScript e JavaScript**) sem precisar de configurações invasivas nem dependências externas pesadas. Se o agente tentar reimplementar uma função funcionalmente similar, o ScopeLock barra a alteração e calcula o statement exato de import que deve ser usado.
 
 ---
 
