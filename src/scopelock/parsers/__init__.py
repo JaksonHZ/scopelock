@@ -3,7 +3,9 @@
 from pathlib import Path
 from typing import Dict, List, Set
 from .base import BaseParser, FunctionSignature
+from .java_parser import JavaParser
 from .python_parser import PythonParser
+from .ruby_parser import RubyParser
 from .typescript_parser import TypeScriptParser
 
 
@@ -15,6 +17,8 @@ class ParserRegistry:
         # Registra parsers padrão
         self.register(PythonParser())
         self.register(TypeScriptParser())
+        self.register(JavaParser())
+        self.register(RubyParser())
 
     def register(self, parser: BaseParser) -> None:
         """Registra um parser para suas respectivas extensões."""

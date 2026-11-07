@@ -13,11 +13,12 @@ def calculate_import_statement(
     Calcula o statement de importação adequado para a linguagem:
     - Python: from module.path import func
     - TypeScript/JavaScript: import { func } from './relative/path';
+    - Java: import com.package.ClassName;
+    - Ruby: require_relative 'relative/path'
     """
     ext = target_file.suffix.lower()
 
     if ext in (".ts", ".tsx", ".js", ".jsx", ".mjs"):
-        # Import relativo para JS/TS
         try:
             rel = target_file.resolve().relative_to(source_file.parent.resolve())
             rel_str = str(rel.with_suffix(""))
@@ -26,6 +27,27 @@ def calculate_import_statement(
         except ValueError:
             rel_str = f"./{target_file.stem}"
         return f"import {{ {function_name} }} from '{rel_str}';"
+
+    if ext == ".java":
+        # Tenta extrair a declaração de package do arquivo Java
+        try:
+            for line in target_file.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line.startswith("package ") and line.endswith(";"):
+                    pkg = line.replace("package ", "").replace(";", "").strip()
+                    class_name = target_file.stem
+                    return f"import {pkg}.{class_name};"
+        except Exception:
+            pass
+        return f"import {target_file.stem}; // ou método estático {function_name}"
+
+    if ext == ".rb":
+        try:
+            rel = target_file.resolve().relative_to(source_file.parent.resolve())
+            rel_str = str(rel.with_suffix(""))
+        except ValueError:
+            rel_str = target_file.stem
+        return f"require_relative '{rel_str}'"
 
     # Padrão Python
     try:
